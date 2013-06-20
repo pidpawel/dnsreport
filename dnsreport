@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 # -*- encoding: utf8 -*-
-# Author: pidpawel
+# Author: pidpawel <pidpawel.eu>
 # Author: aysorth
+# Webpage: https://github.com/pidpawel/dnsreport/
 # License: http://creativecommons.org/licenses/by-sa/3.0/
+
 import sys
 import socket
 from dns import resolver
