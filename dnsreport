@@ -1,0 +1,77 @@
+#!/usr/bin/env python3
+# -*- encoding: utf8 -*-
+# Author: pidpawel
+# Author: aysorth
+# License: http://creativecommons.org/licenses/by-sa/3.0/
+import sys
+import socket
+from dns import resolver
+import argparse
+
+parser = argparse.ArgumentParser(description='Query DNS for extra data')
+parser.add_argument('--no-color', dest='color', action='store_false', help='Prevent from using colors')
+parser.add_argument('domain', nargs='+', help='Domains to scan')
+
+args = parser.parse_args()
+
+if args.color:
+    RED = '\033[31m'
+    GREEN = '\033[32m'
+    BLUE = '\033[34m'
+    YELLOW = '\033[33m'
+    ENDC = '\033[0m'
+else:
+    RED = ''
+    GREEN = ''
+    BLUE = ''
+    YELLOW = ''
+    ENDC = ''
+
+# This lib does not allow ANY requests, so…
+standard_record_types = (
+    'SOA', 'A', 'AAAA', 'MX', 'SRV', 'TXT', 'DNAME', 'NS', 'SPF', 'PTR', 'RP', 'CNAME'
+#'AFSDB', 'APL', 'CERT', 'DHCID', 'DLV', 'DNAME', 'DNSKEY', 'DS', 'HIP',
+#'IPSECKEY', 'KEY', 'KX', 'LOC', 'NAPTR', 'NSEC', 'NSEC3', 'NSEC3PARAM',
+#'PRSIG', 'SIG', 'SSHFP', 'TA', 'TLSA', 'TSIG', 'AXFR', 'IXFR', 'OPT'
+)
+
+def makereport(domain):
+    print(RED + domain + ENDC)
+    for t in standard_record_types:
+        root_last = (t == standard_record_types[-1])
+
+        try:
+            answer = resolver.query(domain, t)
+        except:
+            if root_last:
+                print('╰─ ' + YELLOW + t + ENDC)
+            else:
+                print('├─ ' + YELLOW + t + ENDC)
+        else:
+            if root_last:
+                print('╰─ ' + GREEN + t + ENDC)
+            else:
+                print('├─ ' + GREEN + t + ENDC)
+            for index, line in enumerate(answer):
+                line_s = str(line)
+                line_last = (index == len(answer) - 1)
+
+                rl = ' ' if root_last else '│'
+                ll = ' ' if line_last else '│'
+                llt = '╰' if line_last else '├'
+
+                print(rl + '  ' + llt + '─' + BLUE + line_s + ENDC)
+
+                if t in ('A', 'AAAA'):
+                    try:
+                        rev = str(socket.gethostbyaddr(line_s)[0])
+                    except:
+                        pass
+                    else:
+                        if rev == domain:
+                            print('├─────┴ ' + RED + rev + ENDC)
+                        else:
+                            print(rl + '  ' + ll + ' ╰─' + RED + rev + ENDC)
+
+for d in args.domain:
+    makereport(d)
