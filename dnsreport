@@ -5,11 +5,10 @@
 # Webpage: https://github.com/pidpawel/dnsreport/
 # License: http://creativecommons.org/licenses/by-sa/3.0/
 
-import sys
-import socket
 import argparse
 import re
 from dns import resolver
+from dns import reversename
 
 parser = argparse.ArgumentParser(description='Query DNS for extra data')
 parser.add_argument('--no-color', dest='color', action='store_false', help='Prevent from using colors')
@@ -67,7 +66,7 @@ def makereport(domain):
 
                 if t in ('A', 'AAAA'):
                     try:
-                        rev = str(socket.gethostbyaddr(line_s)[0])
+                        rev = revdns(line_s, True)
                     except:
                         pass
                     else:
@@ -77,12 +76,15 @@ def makereport(domain):
                             print(rl + '  ' + ll + ' ╰─' + RED + rev + ENDC)
 
 
-def revdns(ip):
-    ''' Work in progress '''
+def revdns(ip, inmakereport = False):
     try:
-        rev = str(socket.gethostbyaddr(ip)[0])
-        print(RED + ip + ENDC)
-        print('╰─ ' + GREEN + rev + ENDC)
+        inaddr = reversename.from_address(ip)
+        rev = str(resolver.query(inaddr, 'PTR')[0])
+        if(inmakereport != True):
+            print(RED + ip + ENDC)
+            print('╰─ ' + GREEN + rev + ENDC)
+        else:
+            return rev;
     except:
         print("RevDNS for " + RED + ip + ENDC + " could not be found.")
 
@@ -115,3 +117,4 @@ for t in args.target:
         else:
             parser.print_help()
             print("\nTarget has to be either a valid IP address or a domain.")
+
