@@ -70,11 +70,13 @@ def makereport(domain):
                     except:
                         pass
                     else:
-                        if rev == domain:
-                            print('├─────┴ ' + RED + rev + ENDC)
-                        else:
-                            print(rl + '  ' + ll + ' ╰─' + RED + rev + ENDC)
-
+                        try:
+                            if rev == domain:
+                                print('├─────┴ ' + RED + rev + ENDC)
+                            else:
+                                print(rl + '  ' + ll + ' ╰─' + RED + rev + ENDC)
+                        except:
+                            pass
 
 def revdns(ip, inmakereport = False):
     try:
@@ -86,7 +88,8 @@ def revdns(ip, inmakereport = False):
         else:
             return rev;
     except:
-        print("RevDNS for " + RED + ip + ENDC + " could not be found.")
+        if(inmakereport != True):
+            print("RevDNS for " + RED + ip + ENDC + " could not be found.")
 
 
 def isTargetIp(target):
