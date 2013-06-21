@@ -5,14 +5,14 @@
 # Webpage: https://github.com/pidpawel/dnsreport/
 # License: http://creativecommons.org/licenses/by-sa/3.0/
 
-import sys
-import socket
-from dns import resolver
 import argparse
+import re
+from dns import resolver
+from dns import reversename
 
 parser = argparse.ArgumentParser(description='Query DNS for extra data')
 parser.add_argument('--no-color', dest='color', action='store_false', help='Prevent from using colors')
-parser.add_argument('domain', nargs='+', help='Domains to scan')
+parser.add_argument('target', nargs='+', help='Targets to scan')
 
 args = parser.parse_args()
 
@@ -66,7 +66,7 @@ def makereport(domain):
 
                 if t in ('A', 'AAAA'):
                     try:
-                        rev = str(socket.gethostbyaddr(line_s)[0])
+                        rev = revdns(line_s, True)
                     except:
                         pass
                     else:
@@ -75,5 +75,46 @@ def makereport(domain):
                         else:
                             print(rl + '  ' + ll + ' ╰─' + RED + rev + ENDC)
 
-for d in args.domain:
-    makereport(d)
+
+def revdns(ip, inmakereport = False):
+    try:
+        inaddr = reversename.from_address(ip)
+        rev = str(resolver.query(inaddr, 'PTR')[0])
+        if(inmakereport != True):
+            print(RED + ip + ENDC)
+            print('╰─ ' + GREEN + rev + ENDC)
+        else:
+            return rev;
+    except:
+        print("RevDNS for " + RED + ip + ENDC + " could not be found.")
+
+
+def isTargetIp(target):
+    ipv4pattern = "((2[0-5]{2}|2[0-4]\d|1\d{2}|[1-9]\d|\d)\.){3}(2[0-5]{2}|2[0-4]\d|1\d{2}|[1-9]\d|\d)(/(3[012]|[12]\d|\d))?"
+    v4 = re.compile(ipv4pattern)
+    if(v4.match(target)):
+        return True
+
+    ipv6pattern = "^((([0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}:[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){5}:([0-9A-Fa-f]{1,4}:)?[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){4}:([0-9A-Fa-f]{1,4}:){0,2}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){3}:([0-9A-Fa-f]{1,4}:){0,3}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){2}:([0-9A-Fa-f]{1,4}:){0,4}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}((\b((25[0-5])|(1\d{2})|(2[0-4]\d)|(\d{1,2}))\b)\.){3}(\b((25[0-5])|(1\d{2})|(2[0-4]\d)|(\d{1,2}))\b))|(([0-9A-Fa-f]{1,4}:){0,5}:((\b((25[0-5])|(1\d{2})|(2[0-4]\d)|(\d{1,2}))\b)\.){3}(\b((25[0-5])|(1\d{2})|(2[0-4]\d)|(\d{1,2}))\b))|(::([0-9A-Fa-f]{1,4}:){0,5}((\b((25[0-5])|(1\d{2})|(2[0-4]\d)|(\d{1,2}))\b)\.){3}(\b((25[0-5])|(1\d{2})|(2[0-4]\d)|(\d{1,2}))\b))|([0-9A-Fa-f]{1,4}::([0-9A-Fa-f]{1,4}:){0,5}[0-9A-Fa-f]{1,4})|(::([0-9A-Fa-f]{1,4}:){0,6}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){1,7}:))$"
+    v6 = re.compile(ipv6pattern)
+    if(v6.match(target) != None):
+        return True
+    return False
+
+
+def isTargetDomain(target):
+    domainpattern = "^[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,4}$"
+    dom = re.compile(domainpattern)
+    if(dom.match(target)):
+        return True
+    return False;
+
+for t in args.target:
+        if(isTargetIp(t)):
+            revdns(t)
+        elif(isTargetDomain(t)):
+            makereport(t)
+        else:
+            parser.print_help()
+            print("\nTarget has to be either a valid IP address or a domain.")
+
