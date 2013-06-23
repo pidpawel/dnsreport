@@ -13,6 +13,7 @@ from dns import reversename
 parser = argparse.ArgumentParser(description='Query DNS for extra data')
 parser.add_argument('--no-color', dest='color', action='store_false', help='Prevent from using colors')
 parser.add_argument('target', nargs='+', help='Targets to scan')
+parser.add_argument('-n', dest='ns', help='Nameserver to query')
 
 args = parser.parse_args()
 
@@ -29,6 +30,14 @@ else:
     YELLOW = ''
     ENDC = ''
 
+if args.ns:
+    resolver = resolver.Resolver(configure=False)
+    resolver.nameservers = [args.ns]
+    nameserver = args.ns
+else:
+    nameserver = 'default'  # TODO: figure out how to get default
+                            # ns from dnspython, if possible
+
 # This lib does not allow ANY requests, so…
 standard_record_types = (
     'SOA', 'A', 'AAAA', 'MX', 'SRV', 'TXT', 'DNAME', 'NS', 'SPF', 'PTR', 'RP', 'CNAME'
@@ -38,7 +47,8 @@ standard_record_types = (
 )
 
 def makereport(domain):
-    print(RED + domain + ENDC)
+    print(RED + domain + ENDC + " using nameserver " + BLUE + nameserver + ENDC),
+
     for t in standard_record_types:
         root_last = (t == standard_record_types[-1])
 
