@@ -1,14 +1,13 @@
-#!/usr/bin/env python3
-# -*- encoding: utf8 -*-
+#!/usr/bin/env python2
+# -*- coding: utf8 -*-
 # Author: pidpawel <pidpawel.eu>
 # Author: aysorth
 # Webpage: https://github.com/pidpawel/dnsreport/
 # License: http://creativecommons.org/licenses/by-sa/3.0/
 
+from dns import resolver, reversename
 import argparse
 import re
-from dns import resolver
-from dns import reversename
 
 parser = argparse.ArgumentParser(description='Query DNS for extra data')
 parser.add_argument('--no-color', dest='color', action='store_false', help='Prevent from using colors')
@@ -22,13 +21,13 @@ if args.color:
     GREEN = '\033[32m'
     BLUE = '\033[34m'
     YELLOW = '\033[33m'
-    ENDC = '\033[0m'
+    END = '\033[0m'
 else:
     RED = ''
     GREEN = ''
     BLUE = ''
     YELLOW = ''
-    ENDC = ''
+    END = ''
 
 if args.ns:
     resolver = resolver.Resolver(configure=False)
@@ -46,24 +45,25 @@ standard_record_types = (
 #'PRSIG', 'SIG', 'SSHFP', 'TA', 'TLSA', 'TSIG', 'AXFR', 'IXFR', 'OPT'
 )
 
-def makereport(domain):
-    print(RED + domain + ENDC + " using nameserver " + BLUE + nameserver + ENDC),
 
-    for t in standard_record_types:
-        root_last = (t == standard_record_types[-1])
+def make_report(domain):
+    print(RED + domain + END + " using nameserver " + BLUE + nameserver + END)
+
+    for record_type in standard_record_types:
+        root_last = (record_type == standard_record_types[-1])
 
         try:
-            answer = resolver.query(domain, t)
+            answer = resolver.query(domain, record_type)
         except:
             if root_last:
-                print('╰─ ' + YELLOW + t + ENDC)
+                print('╰─ ' + YELLOW + record_type + END)
             else:
-                print('├─ ' + YELLOW + t + ENDC)
+                print('├─ ' + YELLOW + record_type + END)
         else:
             if root_last:
-                print('╰─ ' + GREEN + t + ENDC)
+                print('╰─ ' + GREEN + record_type + END)
             else:
-                print('├─ ' + GREEN + t + ENDC)
+                print('├─ ' + GREEN + record_type + END)
             for index, line in enumerate(answer):
                 line_s = str(line)
                 line_last = (index == len(answer) - 1)
@@ -72,62 +72,64 @@ def makereport(domain):
                 ll = ' ' if line_last else '│'
                 llt = '╰' if line_last else '├'
 
-                print(rl + '  ' + llt + '─' + BLUE + line_s + ENDC)
+                print(rl + '  ' + llt + '─' + BLUE + line_s + END)
 
-                if t in ('A', 'AAAA'):
+                if record_type in ('A', 'AAAA'):
                     try:
-                        rev = revdns(line_s, True)
+                        rev = revdns(line_s, in_make_report=True)
                     except:
                         pass
                     else:
                         try:
                             if rev == domain:
-                                print('├─────┴ ' + RED + rev + ENDC)
+                                print('├─────┴ ' + RED + rev + END)
                             else:
-                                print(rl + '  ' + ll + ' ╰─' + RED + rev + ENDC)
+                                print(rl + '  ' + ll + ' ╰─' + RED + rev + END)
                         except:
                             pass
 
-def revdns(ip, inmakereport = False):
+
+def revdns(ip, in_make_report=False):
     try:
-        inaddr = reversename.from_address(ip)
-        rev = str(resolver.query(inaddr, 'PTR')[0])
-        if(inmakereport != True):
-            print(RED + ip + ENDC)
-            print('╰─ ' + GREEN + rev + ENDC)
+        in_addr = reversename.from_address(ip)
+        rev = str(resolver.query(in_addr, 'PTR')[0])
+        if in_make_report is not True:
+            print(RED + ip + END)
+            print('╰─ ' + GREEN + rev + END)
         else:
-            return rev;
+            return rev
     except:
-        if(inmakereport != True):
-            print("RevDNS for " + RED + ip + ENDC + " could not be found.")
+        if in_make_report is not True:
+            print("RevDNS for " + RED + ip + END + " could not be found.")
 
 
-def isTargetIp(target):
+def is_ip(target):
     ipv4pattern = "((2[0-5]{2}|2[0-4]\d|1\d{2}|[1-9]\d|\d)\.){3}(2[0-5]{2}|2[0-4]\d|1\d{2}|[1-9]\d|\d)(/(3[012]|[12]\d|\d))?"
     v4 = re.compile(ipv4pattern)
-    if(v4.match(target)):
+    if v4.match(target):
         return True
 
     ipv6pattern = "^((([0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}:[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){5}:([0-9A-Fa-f]{1,4}:)?[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){4}:([0-9A-Fa-f]{1,4}:){0,2}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){3}:([0-9A-Fa-f]{1,4}:){0,3}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){2}:([0-9A-Fa-f]{1,4}:){0,4}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){6}((\b((25[0-5])|(1\d{2})|(2[0-4]\d)|(\d{1,2}))\b)\.){3}(\b((25[0-5])|(1\d{2})|(2[0-4]\d)|(\d{1,2}))\b))|(([0-9A-Fa-f]{1,4}:){0,5}:((\b((25[0-5])|(1\d{2})|(2[0-4]\d)|(\d{1,2}))\b)\.){3}(\b((25[0-5])|(1\d{2})|(2[0-4]\d)|(\d{1,2}))\b))|(::([0-9A-Fa-f]{1,4}:){0,5}((\b((25[0-5])|(1\d{2})|(2[0-4]\d)|(\d{1,2}))\b)\.){3}(\b((25[0-5])|(1\d{2})|(2[0-4]\d)|(\d{1,2}))\b))|([0-9A-Fa-f]{1,4}::([0-9A-Fa-f]{1,4}:){0,5}[0-9A-Fa-f]{1,4})|(::([0-9A-Fa-f]{1,4}:){0,6}[0-9A-Fa-f]{1,4})|(([0-9A-Fa-f]{1,4}:){1,7}:))$"
     v6 = re.compile(ipv6pattern)
-    if(v6.match(target) != None):
+    if v6.match(target) is not None:
+        return True
+
+    return False
+
+
+def is_domain(target):
+    domain_pattern = "^[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,4}$"
+    dom = re.compile(domain_pattern)
+    if dom.match(target):
         return True
     return False
 
 
-def isTargetDomain(target):
-    domainpattern = "^[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,4}$"
-    dom = re.compile(domainpattern)
-    if(dom.match(target)):
-        return True
-    return False;
-
 for t in args.target:
-        if(isTargetIp(t)):
-            revdns(t)
-        elif(isTargetDomain(t)):
-            makereport(t)
-        else:
-            parser.print_help()
-            print("\nTarget has to be either a valid IP address or a domain.")
-
+    if is_ip(t):
+        revdns(t)
+    elif is_domain(t):
+        make_report(t)
+    else:
+        parser.print_help()
+        print("\nTarget has to be either a valid IP address or a domain.")
